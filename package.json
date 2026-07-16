@@ -1,0 +1,33 @@
+{
+  "name": "perfect-color",
+  "version": "1.0.0",
+  "description": "Client-only color tool: a transparent preference quiz plus an OKLCH-first workspace with WCAG contrast, color-vision previews, and design-token exports.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "node --test \"test/*.test.ts\"",
+    "e2e": "playwright test"
+  },
+  "author": "Jordan Umpierre",
+  "license": "MIT",
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
+    "@playwright/test": "^1.54.0",
+    "@types/node": "^24.0.0",
+    "prettier": "^3.6.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.0.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true
+  }
+}
