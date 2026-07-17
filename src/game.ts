@@ -59,13 +59,7 @@ export const POOL: readonly Contender[] = [
   contender("Shamrock", "Luck is a strategy.", 0.65, 0.16, 150),
   contender("Fern Gully", "Filtered light, deep roots.", 0.55, 0.1, 145),
   contender("Matcha", "Calm, whisked, expensive.", 0.75, 0.08, 140),
-  contender(
-    "Emerald City",
-    "Worth the yellow brick commute.",
-    0.58,
-    0.14,
-    155,
-  ),
+  contender("Emerald City", "Worth the yellow brick commute.", 0.58, 0.14, 155),
   contender("Verdigris", "Aged copper, timeless flex.", 0.68, 0.11, 180),
   contender("Jungle Mist", "Humid, mysterious, thriving.", 0.78, 0.07, 175),
   contender("Deep Sea", "Pressure makes it shine.", 0.42, 0.08, 200),
@@ -88,7 +82,13 @@ export const POOL: readonly Contender[] = [
   contender("Amethyst", "Crystal-clear intentions.", 0.62, 0.15, 310),
   contender("Lavender Haze", "Drifting on purpose.", 0.8, 0.07, 300),
   contender("Grape Soda", "Fizzy nostalgia in a can.", 0.55, 0.16, 305),
-  contender("Hot Magenta", "Cannot and will not tone it down.", 0.63, 0.23, 345),
+  contender(
+    "Hot Magenta",
+    "Cannot and will not tone it down.",
+    0.63,
+    0.23,
+    345,
+  ),
   contender("Orchid", "High maintenance, worth it.", 0.72, 0.14, 330),
   contender("Bubblegum", "Pops on principle.", 0.82, 0.09, 0),
   contender("Fuchsia Flash", "Blink and you'll still see it.", 0.68, 0.2, 335),
@@ -222,9 +222,7 @@ export function nearestContender(color: Oklch): Contender {
   for (const candidate of POOL) {
     const other = toLab(candidate.color);
     const dist =
-      (lab.l - other.l) ** 2 +
-      (lab.a - other.a) ** 2 +
-      (lab.b - other.b) ** 2;
+      (lab.l - other.l) ** 2 + (lab.a - other.a) ** 2 + (lab.b - other.b) ** 2;
     if (dist < bestDist) {
       bestDist = dist;
       best = candidate;

@@ -64,8 +64,7 @@ test("an unfinished bracket exposes the next matchup, not a result", () => {
 });
 
 test("stages progress round of 16 → quarterfinals → semifinals → final", () => {
-  const stageAt = (n: number) =>
-    deriveGame(DAY, Array(n).fill(0)).round?.stage;
+  const stageAt = (n: number) => deriveGame(DAY, Array(n).fill(0)).round?.stage;
   assert.equal(stageAt(0), "Round of 16");
   assert.equal(stageAt(7), "Round of 16");
   assert.equal(stageAt(8), "Quarterfinals");
