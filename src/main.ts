@@ -13,7 +13,12 @@ import {
 } from "./color.ts";
 import { DEFICIENCIES, simulateDeficiency } from "./cvd.ts";
 import { buildPalette, type Swatch } from "./palette.ts";
-import { QUESTIONS, scoreQuiz } from "./quiz.ts";
+import {
+  currentDay,
+  deriveGame,
+  nearestContender,
+  type GameView,
+} from "./game.ts";
 import {
   STORAGE_KEY,
   decodeShareHash,
@@ -47,13 +52,172 @@ const inputs = {
 
 type Source = "hex" | "rgb" | "hsl" | "oklch" | "init";
 
+const DAY = currentDay();
+const DAY_LABEL = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+  timeZone: "UTC",
+}).format(new Date(DAY * 86_400_000));
+
 let current: Oklch = DEFAULT_COLOR;
 let currentRgb: Rgb = toGamut(DEFAULT_COLOR).rgb;
-let quizAnswers: number[] | undefined;
+let gameAnswers: number[] = [];
 
 function announce(message: string): void {
   el("status").textContent = message;
 }
+
+function persist(): void {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      serializePersisted(
+        gameAnswers.length > 0
+          ? { version: 2, color: current, gameAnswers, gameDay: DAY }
+          : { version: 2, color: current },
+      ),
+    );
+  } catch {
+    // Storage unavailable (private mode/quota): the app still works, just without persistence.
+  }
+}
+
+// ---------- Views ----------
+
+type View = "game" | "workspace";
+
+function showView(view: View, moveFocus = true): void {
+  const isGame = view === "game";
+  el("game-view").hidden = !isGame;
+  el("workspace-view").hidden = isGame;
+  el("nav-game").toggleAttribute("aria-current", isGame);
+  el("nav-game").setAttribute("aria-current", isGame ? "page" : "false");
+  el("nav-workspace").setAttribute("aria-current", isGame ? "false" : "page");
+  if (moveFocus) {
+    const heading = isGame
+      ? el("game-play").hidden
+        ? el("result-heading")
+        : el("game-heading")
+      : el("workspace-heading");
+    heading.focus();
+  }
+}
+
+el("nav-game").addEventListener("click", () => showView("game"));
+el("nav-workspace").addEventListener("click", () => showView("workspace"));
+
+// ---------- Game ----------
+
+const panels = {
+  left: el<HTMLButtonElement>("pick-left"),
+  right: el<HTMLButtonElement>("pick-right"),
+};
+
+function panelFill(button: HTMLButtonElement): HTMLElement {
+  return button.querySelector<HTMLElement>(".panel-fill")!;
+}
+
+function matchLabel(round: NonNullable<GameView["round"]>): string {
+  return `${round.stage} — match ${round.match} of ${round.matchCount}`;
+}
+
+function renderGame(): void {
+  const view = deriveGame(DAY, gameAnswers);
+  el("bracket-date").textContent = `${DAY_LABEL} bracket`;
+  if (view.round) {
+    el("game-play").hidden = false;
+    el("game-result").hidden = true;
+    el("round-label").textContent = matchLabel(view.round);
+    el<HTMLProgressElement>("round-progress").value = view.roundsPlayed;
+    panelFill(panels.left).style.backgroundColor = view.round.left.hex;
+    panelFill(panels.right).style.backgroundColor = view.round.right.hex;
+    el("left-name").textContent = view.round.left.name;
+    el("right-name").textContent = view.round.right.name;
+    panels.left.setAttribute("aria-label", view.round.left.name);
+    panels.right.setAttribute("aria-label", view.round.right.name);
+  } else if (view.result) {
+    el("game-play").hidden = true;
+    el("game-result").hidden = false;
+    el("result-swatch").style.backgroundColor = view.result.champion.hex;
+    el("result-name").textContent = view.result.champion.name;
+    el("result-tagline").textContent = `“${view.result.champion.tagline}”`;
+    el("result-value").textContent =
+      `${formatOklch(view.result.champion.color)} · ${view.result.champion.hex}`;
+    el("result-runnerup").textContent =
+      `Beat ${view.result.runnerUp.name} in the final of the ${DAY_LABEL} bracket.`;
+    const list = el("result-explanation");
+    list.textContent = "";
+    for (const line of view.result.path) {
+      const li = document.createElement("li");
+      li.textContent = line;
+      list.append(li);
+    }
+  }
+}
+
+function pick(side: 0 | 1): void {
+  const before = deriveGame(DAY, gameAnswers);
+  if (!before.round) return;
+  gameAnswers.push(side);
+  const after = deriveGame(DAY, gameAnswers);
+  renderGame();
+  if (after.result) {
+    setColor(after.result.champion.color, "init");
+    announce(`${after.result.champion.name} takes the title!`);
+    el("result-heading").focus();
+  } else {
+    persist();
+    announce(`${matchLabel(after.round!)}.`);
+  }
+}
+
+panels.left.addEventListener("click", () => pick(0));
+panels.right.addEventListener("click", () => pick(1));
+
+window.addEventListener("keydown", (event) => {
+  if (el("game-view").hidden || el("game-play").hidden) return;
+  const target = event.target as HTMLElement | null;
+  if (target && /^(input|textarea|select)$/i.test(target.tagName)) return;
+  if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    pick(0);
+  } else if (event.key === "ArrowRight") {
+    event.preventDefault();
+    pick(1);
+  }
+});
+
+function restart(): void {
+  gameAnswers = [];
+  persist();
+  renderGame();
+  showView("game");
+  announce("New tournament. Round of 16, match 1 of 8.");
+}
+
+async function copyResult(): Promise<void> {
+  const view = deriveGame(DAY, gameAnswers);
+  if (!view.result) return;
+  const { champion, runnerUp } = view.result;
+  const text = [
+    `🏆 ${champion.name} — my champion in today's Perfect Color bracket (${DAY_LABEL})`,
+    `“${champion.tagline}” It beat ${runnerUp.name} in the final.`,
+    el<HTMLInputElement>("share-url").value,
+  ].join("\n");
+  try {
+    await navigator.clipboard.writeText(text);
+    announce("Result copied to clipboard.");
+  } catch {
+    announce("Copy failed — the share link is available in the workspace.");
+  }
+}
+
+el("restart").addEventListener("click", restart);
+el("result-replay").addEventListener("click", restart);
+el("result-workspace").addEventListener("click", () => showView("workspace"));
+el("result-share").addEventListener("click", copyResult);
+
+// ---------- Workspace ----------
 
 function setColor(requested: Oklch, source: Source): void {
   const result = toGamut(requested);
@@ -61,6 +225,8 @@ function setColor(requested: Oklch, source: Source): void {
   currentRgb = result.rgb;
 
   el("preview").style.backgroundColor = rgbToHex(currentRgb);
+  el("closest-name").textContent =
+    `Closest name: ${nearestContender(current).name}`;
   el("current-value").textContent =
     `${formatOklch(current)} · ${rgbToHex(currentRgb)}`;
   el("gamut-note").textContent = result.clamped
@@ -95,20 +261,8 @@ function setColor(requested: Oklch, source: Source): void {
   const share = new URL(location.href);
   share.hash = encodeShareHash(current);
   el<HTMLInputElement>("share-url").value = share.href;
-  history.replaceState(null, "", share.hash);
 
-  try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      serializePersisted(
-        quizAnswers
-          ? { version: 1, color: current, quizAnswers }
-          : { version: 1, color: current },
-      ),
-    );
-  } catch {
-    // Storage unavailable (private mode/quota): the app still works, just without persistence.
-  }
+  persist();
 }
 
 let palette: Swatch[] = [];
@@ -230,83 +384,9 @@ for (const input of [inputs.okL, inputs.okC, inputs.okH]) {
 
 inputs.contrast.addEventListener("input", renderContrast);
 
-// --- Quiz ---
-
-function renderQuiz(): void {
-  const container = el("quiz-questions");
-  QUESTIONS.forEach((question, qi) => {
-    const fieldset = document.createElement("fieldset");
-    const legend = document.createElement("legend");
-    legend.textContent = `${qi + 1}. ${question.prompt}`;
-    fieldset.append(legend);
-    const wrap = document.createElement("div");
-    wrap.className = "quiz-options";
-    question.options.forEach((option, oi) => {
-      const label = document.createElement("label");
-      const radio = document.createElement("input");
-      radio.type = "radio";
-      radio.name = `q${qi}`;
-      radio.value = String(oi);
-      radio.required = true;
-      const chip = document.createElement("span");
-      chip.className = "swatch";
-      chip.style.backgroundColor = rgbToHex(toGamut(option.color).rgb);
-      chip.setAttribute("aria-hidden", "true");
-      label.append(radio, chip, option.label);
-      wrap.append(label);
-    });
-    fieldset.append(wrap);
-    container.append(fieldset);
-  });
-}
-
-let quizColor: Oklch | null = null;
-
-el<HTMLFormElement>("quiz-form").addEventListener("submit", (event) => {
-  event.preventDefault();
-  const data = new FormData(event.target as HTMLFormElement);
-  const answers: number[] = [];
-  for (let i = 0; i < QUESTIONS.length; i++) {
-    const value = data.get(`q${i}`);
-    if (value !== "0" && value !== "1") {
-      el("quiz-error").hidden = false;
-      return;
-    }
-    answers.push(Number(value));
-  }
-  el("quiz-error").hidden = true;
-  const result = scoreQuiz(answers);
-  quizAnswers = answers;
-  quizColor = result.color;
-  el("quiz-result-swatch").style.backgroundColor = rgbToHex(
-    toGamut(result.color).rgb,
-  );
-  el("quiz-result-value").textContent =
-    `${formatOklch(result.color)} · ${rgbToHex(toGamut(result.color).rgb)}`;
-  const list = el("quiz-explanation");
-  list.textContent = "";
-  for (const line of result.explanation) {
-    const li = document.createElement("li");
-    li.textContent = line;
-    list.append(li);
-  }
-  el("quiz-result").hidden = false;
-  announce("Quiz result ready.");
-  setColor(current, "init"); // persist answers alongside the current color
-});
-
-el("quiz-use").addEventListener("click", () => {
-  if (quizColor) {
-    setColor(quizColor, "init");
-    announce("Workspace color updated from quiz result.");
-    el("workspace").scrollIntoView();
-    inputs.hex.focus();
-  }
-});
-
 // --- Share and export ---
 
-el("copy-share").addEventListener("click", async () => {
+async function copyShareLink(): Promise<void> {
   const url = el<HTMLInputElement>("share-url").value;
   try {
     await navigator.clipboard.writeText(url);
@@ -315,7 +395,9 @@ el("copy-share").addEventListener("click", async () => {
     el<HTMLInputElement>("share-url").select();
     announce("Copy failed — link selected, copy it manually.");
   }
-});
+}
+
+el("copy-share").addEventListener("click", copyShareLink);
 
 function download(filename: string, type: string, content: string): void {
   const url = URL.createObjectURL(new Blob([content], { type }));
@@ -341,23 +423,24 @@ el("export-svg").addEventListener("click", () =>
   download("perfect-color.svg", "image/svg+xml", toSvgSwatches(palette)),
 );
 
-// --- Init: share hash wins, then saved state, then default ---
+// --- Init: share hash opens the workspace; otherwise resume the game ---
 
-renderQuiz();
-
-let initial = DEFAULT_COLOR;
-const fromHash = decodeShareHash(location.hash);
 let stored = null;
 try {
   stored = parsePersisted(localStorage.getItem(STORAGE_KEY));
 } catch {
   stored = null;
 }
-if (fromHash) {
-  initial = fromHash;
-  if (stored?.quizAnswers) quizAnswers = stored.quizAnswers;
-} else if (stored) {
-  initial = stored.color;
-  if (stored.quizAnswers) quizAnswers = stored.quizAnswers;
+// Picks only carry over within the same daily bracket.
+if (stored?.gameAnswers && stored.gameDay === DAY) {
+  gameAnswers = stored.gameAnswers;
 }
-setColor(initial, "init");
+
+const fromHash = decodeShareHash(location.hash);
+if (fromHash) {
+  // Consume the share link so a later reload resumes normally.
+  history.replaceState(null, "", location.pathname + location.search);
+}
+setColor(fromHash ?? stored?.color ?? DEFAULT_COLOR, "init");
+renderGame();
+showView(fromHash ? "workspace" : "game", false);

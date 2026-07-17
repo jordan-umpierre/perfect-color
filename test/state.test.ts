@@ -33,11 +33,23 @@ test("malformed and oversized hashes are rejected", () => {
 
 test("persisted state round trips", () => {
   const state: PersistedState = {
-    version: 1,
+    version: 2,
     color: { l: 0.65, c: 0.12, h: 250 },
-    quizAnswers: [0, 1, 0, 1, 0, 1],
+    gameAnswers: [0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1],
+    gameDay: 20650,
   };
   assert.deepEqual(parsePersisted(serializePersisted(state)), state);
+});
+
+test("invalid gameDay is dropped, not trusted", () => {
+  const parse = (day: string) =>
+    parsePersisted(
+      `{"version":2,"color":{"l":0.5,"c":0.1,"h":20},"gameDay":${day}}`,
+    );
+  assert.equal(parse("-1")?.gameDay, undefined);
+  assert.equal(parse("1.5")?.gameDay, undefined);
+  assert.equal(parse('"20650"')?.gameDay, undefined);
+  assert.equal(parse("20650")?.gameDay, 20650);
 });
 
 test("corrupt stored state is rejected", () => {
@@ -46,20 +58,26 @@ test("corrupt stored state is rejected", () => {
   assert.equal(parsePersisted("null"), null);
   assert.equal(parsePersisted('"a string"'), null);
   assert.equal(
-    parsePersisted('{"version":2,"color":{"l":0.5,"c":0.1,"h":20}}'),
+    parsePersisted('{"version":1,"color":{"l":0.5,"c":0.1,"h":20}}'),
     null,
   );
   assert.equal(
-    parsePersisted('{"version":1,"color":{"l":"x","c":0.1,"h":20}}'),
+    parsePersisted('{"version":2,"color":{"l":"x","c":0.1,"h":20}}'),
     null,
   );
   assert.equal(
-    parsePersisted('{"version":1,"color":{"l":5,"c":0.1,"h":20}}'),
+    parsePersisted('{"version":2,"color":{"l":5,"c":0.1,"h":20}}'),
     null,
   );
   assert.equal(
     parsePersisted(
-      '{"version":1,"color":{"l":0.5,"c":0.1,"h":20},"quizAnswers":[7]}',
+      '{"version":2,"color":{"l":0.5,"c":0.1,"h":20},"gameAnswers":[7]}',
+    ),
+    null,
+  );
+  assert.equal(
+    parsePersisted(
+      `{"version":2,"color":{"l":0.5,"c":0.1,"h":20},"gameAnswers":[${Array(40).fill(0).join(",")}]}`,
     ),
     null,
   );

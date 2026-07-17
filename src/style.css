@@ -1,6 +1,7 @@
 :root {
   color-scheme: light dark;
-  --bg: #fdfcfa;
+  --bg: #f7f4ef;
+  --surface: #ffffff;
   --fg: #23211e;
   --muted: #5b564f;
   --border: #d8d4cd;
@@ -8,6 +9,7 @@
   --error: #a4222a;
   --pass-bg: #e3efe6;
   --fail-bg: #f6e4e4;
+  --radius: 1.25rem;
   font-family:
     system-ui,
     -apple-system,
@@ -18,7 +20,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1c1b19;
+    --bg: #171614;
+    --surface: #211f1c;
     --fg: #ece9e4;
     --muted: #aaa49b;
     --border: #45423d;
@@ -33,28 +36,22 @@
   box-sizing: border-box;
 }
 
+/* Layout display rules below must never resurrect hidden elements. */
+[hidden] {
+  display: none !important;
+}
+
+html,
 body {
-  margin: 0 auto;
-  max-width: 52rem;
-  padding: 1rem;
+  height: 100%;
+}
+
+body {
+  margin: 0;
   background: var(--bg);
   color: var(--fg);
-}
-
-header .tagline {
-  color: var(--muted);
-}
-
-h1 {
-  margin-bottom: 0.25rem;
-}
-
-section {
-  margin-block: 2.5rem;
-}
-
-a {
-  color: var(--accent);
+  display: flex;
+  flex-direction: column;
 }
 
 .skip-link {
@@ -77,18 +74,52 @@ a {
   white-space: nowrap;
 }
 
-button {
-  font: inherit;
-  padding: 0.5rem 1rem;
+/* ---------- Top bar ---------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1.25rem;
+  gap: 1rem;
+}
+
+.brand {
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-size: 1.15rem;
+}
+
+.topbar nav {
+  display: flex;
+  gap: 0.4rem;
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 0.375rem;
-  background: var(--bg);
+  border-radius: 999px;
+  padding: 0.25rem;
+}
+
+.topbar nav button {
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.35rem 1rem;
+  font: inherit;
+  font-weight: 600;
   color: var(--fg);
   cursor: pointer;
 }
 
-button:hover {
-  border-color: var(--accent);
+.topbar nav button[aria-current="page"] {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+/* ---------- Shared controls ---------- */
+
+button {
+  font: inherit;
 }
 
 :focus-visible {
@@ -96,12 +127,267 @@ button:hover {
   outline-offset: 2px;
 }
 
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* ---------- Game view ---------- */
+
+#game-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 1.25rem 1rem;
+  max-width: 70rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+#game-play,
+#game-result {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#game-heading,
+#result-heading {
+  margin: 0.25rem 0 0;
+  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+.game-sub {
+  margin: 0.25rem auto 0.75rem;
+  text-align: center;
+  color: var(--muted);
+  max-width: 34rem;
+}
+
+.game-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+progress {
+  width: min(18rem, 50vw);
+  height: 0.6rem;
+  accent-color: var(--accent);
+}
+
+.arena {
+  flex: 1;
+  display: flex;
+  gap: 1rem;
+  position: relative;
+  min-height: 14rem;
+}
+
+.color-panel {
+  flex: 1;
+  position: relative;
+  border: 0;
+  border-radius: var(--radius);
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: none;
+}
+
+.panel-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid var(--border);
+}
+
+.panel-name {
+  position: relative;
+  margin-bottom: 1.25rem;
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  padding: 0.4rem 1.1rem;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+  letter-spacing: -0.01em;
+}
+
+.versus {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.5rem 0.9rem;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.game-hint {
+  text-align: center;
+  color: var(--muted);
+  margin: 0.75rem 0 0;
+}
+
+kbd {
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 0.3rem;
+  padding: 0.05rem 0.4rem;
+  font-family: ui-monospace, monospace;
+  background: var(--surface);
+}
+
+.linklike {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 0.75rem;
+}
+
+/* ---------- Result screen ---------- */
+
+#game-result {
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.result-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem 2.5rem;
+}
+
+.result-swatch {
+  display: block;
+  width: min(16rem, 60vw);
+  height: min(11rem, 32vh);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.result-name {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.result-tagline {
+  margin: 0;
+  font-style: italic;
+  color: var(--muted);
+}
+
+.result-value {
+  margin: 0;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.bracket-date {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.closest-name {
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+}
+
+.fineprint {
+  color: var(--muted);
+  max-width: 34rem;
+  margin: 0;
+}
+
+#game-result details {
+  max-width: 38rem;
+}
+
+#game-result summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+#game-result ol {
+  text-align: left;
+}
+
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.result-actions button,
+.export-buttons button,
+#copy-share {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg);
+  padding: 0.55rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.result-actions button:hover,
+.export-buttons button:hover,
+#copy-share:hover {
+  border-color: var(--accent);
+}
+
+#result-workspace {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+
+/* ---------- Workspace view ---------- */
+
+#workspace-view {
+  max-width: 52rem;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 1.25rem 2rem;
+}
+
 input {
   font: inherit;
   padding: 0.35rem 0.5rem;
   border: 1px solid var(--border);
   border-radius: 0.25rem;
-  background: var(--bg);
+  background: var(--surface);
   color: var(--fg);
   max-width: 100%;
 }
@@ -149,7 +435,7 @@ label {
   position: sticky;
   bottom: 0;
   margin: 0;
-  padding: 0.25rem 0;
+  padding: 0.25rem 1.25rem;
   color: var(--muted);
   background: var(--bg);
   min-height: 1.5rem;
@@ -193,6 +479,7 @@ label {
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   overflow: hidden;
+  background: var(--surface);
 }
 
 .palette .chip {
@@ -209,37 +496,6 @@ label {
 .palette .meta .name {
   display: block;
   font-family: inherit;
-}
-
-/* Quiz */
-.quiz-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  padding: 0;
-  border: 0;
-}
-
-.quiz-options label {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  padding: 0.6rem 0.9rem;
-  margin: 0;
-  cursor: pointer;
-}
-
-.quiz-options label:has(input:checked) {
-  border-color: var(--accent);
-  border-width: 2px;
-  font-weight: 600;
-}
-
-#quiz-form fieldset {
-  margin-block: 1rem;
-  padding: 0.75rem 1rem;
 }
 
 table {
@@ -271,16 +527,34 @@ td.fail {
   gap: 0.5rem;
 }
 
+a {
+  color: var(--accent);
+}
+
 footer {
-  margin-block: 3rem 1rem;
+  margin-block: 3rem 0;
   color: var(--muted);
   border-top: 1px solid var(--border);
   padding-top: 1rem;
 }
 
+/* ---------- Media adjustments ---------- */
+
+@media (max-width: 40rem) {
+  .arena {
+    flex-direction: column;
+  }
+
+  .versus {
+    top: 50%;
+  }
+}
+
 @media (forced-colors: active) {
   .swatch,
-  .palette .chip {
+  .palette .chip,
+  .panel-fill,
+  .result-swatch {
     border: 1px solid CanvasText;
     /* Swatch colors are content, not decoration. */
     forced-color-adjust: none;
@@ -288,10 +562,38 @@ footer {
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  .color-panel {
+    transition: transform 150ms ease;
+  }
+
+  .color-panel:hover,
+  .color-panel:focus-visible {
+    transform: scale(1.015);
+  }
+
+  .panel-fill {
+    transition: background-color 200ms ease;
+  }
+
   button,
   input {
     transition:
       border-color 120ms ease,
       outline-color 120ms ease;
+  }
+
+  .result-swatch {
+    animation: champion-pop 350ms ease-out;
+  }
+
+  @keyframes champion-pop {
+    from {
+      transform: scale(0.6);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 }

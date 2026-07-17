@@ -214,7 +214,7 @@ export function hslToRgb(hsl: Hsl): Rgb {
 }
 
 /** WCAG 2.x relative luminance of a gamma-encoded sRGB color. */
-export function relativeLuminance(rgb: Rgb): number {
+function relativeLuminance(rgb: Rgb): number {
   return (
     0.2126 * srgbToLinear(rgb.r) +
     0.7152 * srgbToLinear(rgb.g) +

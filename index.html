@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Perfect Color: a transparent color preference quiz and a professional color workspace with OKLCH, WCAG contrast, and design-token exports."
+      content="Perfect Color: a daily 16-color tournament bracket that crowns your champion color, plus a professional OKLCH workspace with WCAG contrast and design-token exports."
     />
     <title>Perfect Color</title>
     <link
@@ -15,70 +15,100 @@
     <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
-    <a class="skip-link" href="#workspace">Skip to workspace</a>
-    <header>
-      <h1>Perfect Color</h1>
-      <p class="tagline">
-        A preference quiz and a color engineering workspace. Everything runs in
-        your browser; nothing is uploaded.
-      </p>
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <header class="topbar">
+      <p class="brand">Perfect Color</p>
+      <nav aria-label="Views">
+        <button type="button" id="nav-game" aria-current="page">Game</button>
+        <button type="button" id="nav-workspace">Workspace</button>
+      </nav>
     </header>
 
-    <main>
-      <section id="quiz" aria-labelledby="quiz-heading">
-        <h2 id="quiz-heading">Preference quiz</h2>
-        <p>
-          Six visual comparisons suggest a starting color.
-          <strong>The result is subjective</strong> — it is a transparent
-          average of your choices, not a scientific or personality claim. The
-          same answers always produce the same color, and the result explains
-          exactly how each answer affected it.
-        </p>
-        <form id="quiz-form">
-          <!-- Question fieldsets are rendered here -->
-          <div id="quiz-questions"></div>
-          <p id="quiz-error" class="error" role="alert" hidden>
-            Answer every question to reveal your color.
+    <main id="main">
+      <!-- ============ GAME VIEW ============ -->
+      <section id="game-view" aria-labelledby="game-heading">
+        <div id="game-play">
+          <h1 id="game-heading" tabindex="-1">Which color wins?</h1>
+          <p class="game-sub">
+            Sixteen named colors, one bracket,
+            <strong>fresh every day</strong> — everyone plays the same
+            matchups. The last color standing is your champion.
           </p>
-          <button type="submit">Reveal my color</button>
-        </form>
-        <div id="quiz-result" hidden>
-          <h3>Your color</h3>
-          <p>
+          <p class="game-progress">
+            <span id="bracket-date" class="bracket-date"></span>
+            <span id="round-label">Round of 16 — match 1 of 8</span>
+            <progress id="round-progress" max="15" value="0"></progress>
+          </p>
+          <div class="arena">
+            <button type="button" id="pick-left" class="color-panel">
+              <span class="panel-fill" aria-hidden="true"></span>
+              <span class="panel-name" id="left-name"></span>
+            </button>
+            <span class="versus" aria-hidden="true">vs</span>
+            <button type="button" id="pick-right" class="color-panel">
+              <span class="panel-fill" aria-hidden="true"></span>
+              <span class="panel-name" id="right-name"></span>
+            </button>
+          </div>
+          <p class="game-hint">
+            Click a color, or press <kbd>←</kbd> / <kbd>→</kbd>.
+            <button type="button" id="restart" class="linklike">
+              Start over
+            </button>
+          </p>
+        </div>
+
+        <div id="game-result" hidden>
+          <h1 tabindex="-1" id="result-heading">Your champion color</h1>
+          <div class="result-card">
             <span
-              id="quiz-result-swatch"
-              class="swatch large"
+              id="result-swatch"
+              class="result-swatch"
               aria-hidden="true"
             ></span>
-            <output id="quiz-result-value" for="quiz-form"></output>
+            <p id="result-name" class="result-name"></p>
+            <p id="result-tagline" class="result-tagline"></p>
+            <p id="result-runnerup" class="fineprint"></p>
+            <p id="result-value" class="result-value"></p>
+          </div>
+          <p class="fineprint">
+            Subjective, by design: today's bracket is the same for everyone,
+            and the same picks always crown the same champion — no tricks.
           </p>
-          <h4>How your answers shaped it</h4>
-          <p>
-            Scoring starts from a neutral mid-blue (oklch(0.65 0.12 250)). Hue
-            is the circular average of the hue poles you chose; chroma and
-            lightness add up your adjustments.
-          </p>
-          <ol id="quiz-explanation"></ol>
-          <button type="button" id="quiz-use">
-            Use this color in the workspace
-          </button>
+          <details>
+            <summary>Road to the title</summary>
+            <ol id="result-explanation"></ol>
+          </details>
+          <div class="result-actions">
+            <button type="button" id="result-workspace">
+              Fine-tune it in the workspace
+            </button>
+            <button type="button" id="result-share">Copy result</button>
+            <button type="button" id="result-replay">Play again</button>
+          </div>
         </div>
       </section>
 
-      <section id="workspace" aria-labelledby="workspace-heading">
-        <h2 id="workspace-heading">Workspace</h2>
+      <!-- ============ WORKSPACE VIEW ============ -->
+      <section id="workspace-view" aria-labelledby="workspace-heading" hidden>
+        <h1 id="workspace-heading" tabindex="-1">Workspace</h1>
+        <p>
+          Everything runs in your browser; nothing is uploaded. The canonical
+          value is OKLCH; other formats are derived from it and clamped to the
+          sRGB gamut when needed.
+        </p>
 
         <div class="preview-row">
           <span id="preview" class="swatch large" aria-hidden="true"></span>
-          <p id="current-value" aria-live="polite"></p>
+          <div>
+            <p id="closest-name" class="closest-name"></p>
+            <p id="current-value" aria-live="polite"></p>
+          </div>
         </div>
         <p id="gamut-note" role="status"></p>
 
-        <h3>Edit the color</h3>
-        <p>
-          All formats stay in sync. The canonical value is OKLCH; other formats
-          are derived from it and clamped to the sRGB gamut when needed.
-        </p>
+        <h2>Edit the color</h2>
         <div class="editors">
           <fieldset>
             <legend>Hex</legend>
@@ -139,14 +169,14 @@
           </fieldset>
         </div>
 
-        <h3>Palette</h3>
+        <h2>Palette</h2>
         <p>
           A restrained palette derived from the current color: tints, shades,
           analogous hues, and the complement.
         </p>
         <ul id="palette" class="palette"></ul>
 
-        <h3>Contrast</h3>
+        <h2>Contrast</h2>
         <p>
           WCAG 2.2 contrast of the current color as text. Normal text needs
           4.5:1 for AA and 7:1 for AAA; large text needs 3:1 and 4.5:1.
@@ -181,7 +211,7 @@
           <tbody></tbody>
         </table>
 
-        <h3>Color-vision previews</h3>
+        <h2>Color-vision previews</h2>
         <p>
           Approximate simulations (Machado et al. 2009) of how the current color
           may appear with three color-vision deficiencies. These are design
@@ -189,7 +219,7 @@
         </p>
         <ul id="cvd-list" class="palette"></ul>
 
-        <h3>Save and share</h3>
+        <h2>Save and share</h2>
         <p>
           The current color is saved in this browser automatically. The share
           link encodes only the color value.
@@ -200,23 +230,24 @@
         </label>
         <button type="button" id="copy-share">Copy share link</button>
 
-        <h3>Export</h3>
+        <h2>Export</h2>
         <p>Download the palette as portable design tokens.</p>
         <div class="export-buttons">
           <button type="button" id="export-css">CSS custom properties</button>
           <button type="button" id="export-json">JSON design tokens</button>
           <button type="button" id="export-svg">SVG swatches</button>
         </div>
+
+        <footer>
+          <p>
+            Local-only: no accounts, no analytics, no uploads. Source on
+            <a href="https://github.com/jordan-umpierre/perfect-color">GitHub</a
+            >.
+          </p>
+        </footer>
       </section>
     </main>
 
     <p id="status" role="status" aria-live="polite" class="status"></p>
-
-    <footer>
-      <p>
-        Local-only: no accounts, no analytics, no uploads. Source on
-        <a href="https://github.com/jordan-umpierre/perfect-color">GitHub</a>.
-      </p>
-    </footer>
   </body>
 </html>

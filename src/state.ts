@@ -6,14 +6,18 @@
 
 import type { Oklch } from "./color.ts";
 
-export const STORAGE_KEY = "perfect-color:v1";
+export const STORAGE_KEY = "perfect-color:v2";
 export const MAX_HASH_LENGTH = 64;
 const MAX_STORED_LENGTH = 4096;
+const MAX_ANSWERS = 32;
 
 export interface PersistedState {
-  version: 1;
+  version: 2;
   color: Oklch;
-  quizAnswers?: number[];
+  /** Left/right picks (0/1) of the in-progress or finished game. */
+  gameAnswers?: number[];
+  /** UTC day (days since epoch) the picks belong to; stale days reset. */
+  gameDay?: number;
 }
 
 function isValidColor(value: unknown): value is Oklch {
@@ -46,14 +50,21 @@ export function parsePersisted(json: string | null): PersistedState | null {
   }
   if (typeof value !== "object" || value === null) return null;
   const record = value as Record<string, unknown>;
-  if (record["version"] !== 1 || !isValidColor(record["color"])) return null;
-  const state: PersistedState = { version: 1, color: record["color"] };
-  const answers = record["quizAnswers"];
+  if (record["version"] !== 2 || !isValidColor(record["color"])) return null;
+  const state: PersistedState = { version: 2, color: record["color"] };
+  const answers = record["gameAnswers"];
   if (Array.isArray(answers)) {
-    if (answers.length > 16 || !answers.every((a) => a === 0 || a === 1)) {
+    if (
+      answers.length > MAX_ANSWERS ||
+      !answers.every((a) => a === 0 || a === 1)
+    ) {
       return null;
     }
-    state.quizAnswers = answers as number[];
+    state.gameAnswers = answers as number[];
+  }
+  const day = record["gameDay"];
+  if (typeof day === "number" && Number.isInteger(day) && day >= 0) {
+    state.gameDay = day;
   }
   return state;
 }
