@@ -1,0 +1,46 @@
+{
+  "standard": {
+    "warmup": 3,
+    "repetitions": 20,
+    "statistic": "median and p95",
+    "varianceTolerance": "coefficient of variation <= 0.25"
+  },
+  "environment": {
+    "node": "v26.3.0",
+    "os": "Darwin 25.5.0",
+    "arch": "arm64",
+    "cpu": "Apple M2"
+  },
+  "build": {
+    "command": "npm run typecheck && npm run build",
+    "commit": "9865cad10bd1f2353b9ada201b55f6365962ab81"
+  },
+  "workload": "10,000 deterministic OKLCH colors gamut-mapped to sRGB; no user data",
+  "results": {
+    "samplesMs": [
+      6.555583000000013,
+      6.790541999999988,
+      6.696917000000013,
+      6.624042000000003,
+      7.425791000000004,
+      6.5536249999999825,
+      7.03725,
+      12.292833000000002,
+      7.302958000000018,
+      6.455874999999992,
+      7.231667000000016,
+      6.585541000000006,
+      6.936042000000015,
+      6.609791999999999,
+      6.680083999999994,
+      6.935207999999989,
+      6.579457999999988,
+      7.124917000000039,
+      6.486749999999972,
+      9.135541999999987
+    ],
+    "medianMs": 6.790541999999988,
+    "p95Ms": 12.292833000000002,
+    "coefficientOfVariation": 0.1808969190430524
+  }
+}
